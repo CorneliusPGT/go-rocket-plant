@@ -3,13 +3,13 @@ package handlers
 import (
 	"context"
 	"errors"
-	"order-service/internal/models"
 	api "order-service/internal/oapi"
-	"order-service/internal/service"
+	"order-service/internal/repository/model"
+	"order-service/internal/service/order"
 )
 
 type OrderHandler struct {
-	Service *service.OrderService
+	Service *order.Service
 }
 
 func (h *OrderHandler) CreateOrder(ctx context.Context, req *api.CreateOrderRequest) (api.CreateOrderRes, error) {
@@ -29,7 +29,7 @@ func (h *OrderHandler) GetOrder(
 	params api.GetOrderParams,
 ) (api.GetOrderRes, error) {
 
-	order, err := h.Service.GetOrderById(ctx, params.OrderUUID)
+	order, err := h.Service.GetOrder(ctx, params.OrderUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +62,9 @@ func (h *OrderHandler) PayOrder(
 	params api.PayOrderParams,
 ) (api.PayOrderRes, error) {
 
-	pm := models.PaymentMethod(req.PaymentMethod)
+	pm := model.PaymentMethod(req.PaymentMethod)
 
-	tUid, err := h.Service.MakePayment(ctx, &pm, params.OrderUUID)
+	tUid, err := h.Service.PayOrder(ctx, params.OrderUUID, &pm)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (h *OrderHandler) NewError(
 ) *api.ErrorStatusCode {
 
 	switch {
-	case errors.Is(err, service.ErrNotFound):
+	case errors.Is(err, model.ErrNotFound):
 		return &api.ErrorStatusCode{
 			StatusCode: 404,
 			Response: api.Error{
@@ -88,7 +88,7 @@ func (h *OrderHandler) NewError(
 			},
 		}
 
-	case errors.Is(err, service.ErrConflict):
+	case errors.Is(err, model.ErrConflict):
 		return &api.ErrorStatusCode{
 			StatusCode: 409,
 			Response: api.Error{

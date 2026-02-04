@@ -3,17 +3,24 @@ package main
 import (
 	"context"
 	"errors"
+	"inventory-service/grpc/inventorypb"
 	"log"
 	"net/http"
-	client "order-service/cmd/http_client"
+	inventorygrpc "order-service/cmd/grpc/inventory"
+	paymentgrpc "order-service/cmd/grpc/payment"
 	"order-service/internal/handlers"
-	"order-service/internal/models"
 	api "order-service/internal/oapi"
-	"order-service/internal/service"
+	repository "order-service/internal/repository/order"
+	"order-service/internal/service/order"
+	"payment-service/grpc/paymentpb"
+
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -22,36 +29,32 @@ func main() {
 		readHeaderTimeout = 5 * time.Second
 		shutdownTimeout   = 10 * time.Second
 	)
-	paymentAddr := os.Getenv("PAYMENT_SERVICE_ADDR")
-	if paymentAddr == "" {
-		paymentAddr = "127.0.0.1:50052"
+	repo := repository.NewRepository()
+
+	payAddr := os.Getenv("PAYMENT_SERVICE_ADDR")
+	if payAddr == "" {
+		payAddr = "127.0.0.1:50052"
 	}
-	paymentClient, err := client.NewPaymentClient(paymentAddr)
+
+	invAddr := os.Getenv("INVENTORY_SERVICE_ADDR")
+	if invAddr == "" {
+		invAddr = "127.0.0.1:50051"
+	}
+	invConn, err := grpc.NewClient(invAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("Не удалось создать gRPC-клиент PaymentService: %v", err)
+		log.Fatal(err)
 	}
-	defer paymentClient.Close()
+	defer invConn.Close()
 
-	realPayment := service.NewPaymentServiceClient(paymentClient)
+	payConn, err := grpc.NewClient(payAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	defer payConn.Close()
 
-	inventAddr := os.Getenv("INVENTORY_SERVICE_ADDR")
-	if inventAddr == "" {
-		inventAddr = "127.0.0.1:50051"
-	}
-	inventoryClient, err := client.NewInventoryClient(inventAddr)
-	if err != nil {
-		log.Fatalf("Не удалось создать gRPC-клиент PaymentService: %v", err)
-	}
-	defer inventoryClient.Close()
-
-	realInventory := service.NewInventoryServiceClient(inventoryClient)
-
-	storage := models.NewOrderStorage()
-	orderService := service.NewOrderService(storage, *realInventory, *realPayment)
+	invService := inventorygrpc.New(inventorypb.NewInventoryServiceClient(invConn))
+	payService := paymentgrpc.New(paymentpb.NewPaymentServiceClient(payConn))
+	orderService := order.NewService(repo, invService, payService)
 	handler := &handlers.OrderHandler{
 		Service: orderService,
 	}
-
 	server, err := api.NewServer(handler)
 	if err != nil {
 		log.Fatalf("не удалось создать сервер: %v", err)

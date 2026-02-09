@@ -9,6 +9,7 @@ import (
 	inventorygrpc "order-service/cmd/grpc/inventory"
 	paymentgrpc "order-service/cmd/grpc/payment"
 	"order-service/internal/handlers"
+	"order-service/internal/migrator"
 	api "order-service/internal/oapi"
 	repository "order-service/internal/repository/order"
 	"order-service/internal/service/order"
@@ -19,17 +20,29 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
+	dsn := os.Getenv("POSTGRES_DSN")
+
+	if err := migrator.Run(dsn, "migrations"); err != nil {
+		log.Fatalf("migrations failed: %v", err)
+	}
+
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		log.Fatalf("pgxpool failed: %v", err)
+	}
+	defer pool.Close()
 	const (
 		httpPort          = ":8080"
 		readHeaderTimeout = 5 * time.Second
 		shutdownTimeout   = 10 * time.Second
 	)
-	repo := repository.NewRepository()
+	repo := repository.NewRepository(pool)
 
 	payAddr := os.Getenv("PAYMENT_SERVICE_ADDR")
 	if payAddr == "" {

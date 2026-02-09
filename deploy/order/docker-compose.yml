@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres
+    container_name: order-postgres
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: order
+    ports:
+      - "5432:5432"
+    volumes:
+      - order_pg_data:/var/lib/postgresql/data
+    networks:
+      - microservices
+
+volumes:
+  order_pg_data:
+
+networks:
+  core:
+    external: true

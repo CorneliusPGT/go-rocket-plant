@@ -1,12 +1,12 @@
-
 package order
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"order-service/internal/repository"
 	"order-service/internal/repository/model"
 	"order-service/internal/service"
+
+	"github.com/google/uuid"
 )
 
 type Service struct {
@@ -33,8 +33,9 @@ func (s *Service) CreateOrder(ctx context.Context, userID string, partIDs []stri
 		total += part.Price
 	}
 	order := &model.Order{
-		OrderUUID:  uuid.New().String(),
-		UserUUID:   userID,
+		OrderUUID: uuid.New().String(),
+		UserUUID:  userID,
+		/* 	Parts:     parts, */
 		PartUUIDs:  partIDs,
 		TotalPrice: total,
 		Status:     model.StatusPendingPayment,

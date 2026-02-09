@@ -37,7 +37,7 @@ func (h *OrderHandler) GetOrder(
 	return &api.Order{
 		OrderUUID:  order.OrderUUID,
 		UserUUID:   order.UserUUID,
-		PartUuids:  order.PartUUIDs,
+		PartUuids:  order.PartUuidDs,
 		TotalPrice: order.TotalPrice,
 		Status:     api.OrderStatus(order.Status),
 	}, nil

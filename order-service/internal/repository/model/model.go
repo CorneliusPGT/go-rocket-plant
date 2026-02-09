@@ -27,17 +27,19 @@ const (
 )
 
 type Order struct {
-	OrderUUID       string   `json:"order_uuid"`
-	UserUUID        string   `json:"user_uuid"`
-	PartUUIDs       []string `json:"part_uuids"`
-	TotalPrice      float64  `json:"total_price"`
-	TransactionUUID *string
-	PaymentMethod   *PaymentMethod
-	Status          OrderStatus
+	OrderUUID string `json:"order_uuid"`
+	UserUUID  string /* `json:"user_uuid"` */
+	 PartUUIDs       []string `json:"part_uuids"` 
+/* 	Parts                          []*Part `json:"parts"` */
+	TotalPrice                     float64 `json:"total_price"`
+	TransactionUUID                *string
+	PaymentMethod                  *PaymentMethod `json:"payment_method"`
+	Status                         OrderStatus    `json:"status"`
 }
 
 type Part struct {
-	UUID  string
-	Name  string
-	Price float64
+	UUID     string
+	Name     string
+	Price    float64
+	Quantity int
 }

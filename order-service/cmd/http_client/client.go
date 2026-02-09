@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	inventorypb "inventory-service/grpc/inventorypb"
-	"order-service/internal/models"
+	"order-service/internal/repository/model"
+
 	paymentpb "payment-service/grpc/paymentpb"
 	"time"
 
@@ -85,7 +86,7 @@ func (c *PaymentClient) Close() error {
 	return c.conn.Close()
 }
 
-func (c *PaymentClient) MakePayment(ctx context.Context, orderUuid, userUuid string, pm *models.PaymentMethod) (string, error) {
+func (c *PaymentClient) MakePayment(ctx context.Context, orderUuid, userUuid string, pm *model.PaymentMethod) (string, error) {
 	if pm == nil {
 		return "", fmt.Errorf("payment method is required")
 	}

@@ -46,6 +46,8 @@ func (s *Server) handleCancelOrderRequest(args [1]string, argsEscaped bool, w ht
 		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.HTTPRouteKey.String("/api/v1/orders/{order_uuid}/cancel"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
 	ctx, span := s.cfg.Tracer.Start(r.Context(), CancelOrderOperation,
@@ -198,6 +200,8 @@ func (s *Server) handleCreateOrderRequest(args [0]string, argsEscaped bool, w ht
 		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.HTTPRouteKey.String("/api/v1/orders"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
 	ctx, span := s.cfg.Tracer.Start(r.Context(), CreateOrderOperation,
@@ -350,6 +354,8 @@ func (s *Server) handleGetOrderRequest(args [1]string, argsEscaped bool, w http.
 		semconv.HTTPRequestMethodKey.String("GET"),
 		semconv.HTTPRouteKey.String("/api/v1/orders/{order_uuid}"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
 	ctx, span := s.cfg.Tracer.Start(r.Context(), GetOrderOperation,
@@ -502,6 +508,8 @@ func (s *Server) handlePayOrderRequest(args [1]string, argsEscaped bool, w http.
 		semconv.HTTPRequestMethodKey.String("POST"),
 		semconv.HTTPRouteKey.String("/api/v1/orders/{order_uuid}/pay"),
 	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
 
 	// Start a span for this request.
 	ctx, span := s.cfg.Tracer.Start(r.Context(), PayOrderOperation,

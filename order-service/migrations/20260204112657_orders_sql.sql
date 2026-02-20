@@ -7,6 +7,8 @@ CREATE TABLE orders (
     user_id TEXT NOT NULL,
     status TEXT NOT NULL,
     total_price NUMERIC(10,2) NOT NULL,
+    payment_method TEXT,          
+    transaction_id TEXT,          
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -15,7 +17,7 @@ CREATE TABLE order_items (
     part_id TEXT NOT NULL,
     price NUMERIC(10, 2) NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
-
+    name TEXT NOT NULL,
     PRIMARY KEY (order_id, part_id),
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );

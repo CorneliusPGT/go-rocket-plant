@@ -27,8 +27,11 @@ import (
 
 func main() {
 	dsn := os.Getenv("POSTGRES_DSN")
+	if dsn == "" {
+		dsn = "postgres://order:order@localhost:5432/orders?sslmode=disable"
+	}
 
-	if err := migrator.Run(dsn, "migrations"); err != nil {
+	if err := migrator.Run(dsn, "../../migrations"); err != nil {
 		log.Fatalf("migrations failed: %v", err)
 	}
 

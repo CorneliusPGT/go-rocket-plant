@@ -197,19 +197,33 @@ components:
       required:
         - order_uuid
         - user_uuid
-        - part_uuids
+        - items
         - total_price
         - status
       properties:
         order_uuid:
           type: string
-
         user_uuid:
           type: string
-        part_uuids:
+        items:
           type: array
           items:
-            type: string
+            type: object
+            required:
+              - part_uuid
+              - quantity
+              - price
+              - name
+            properties:
+              part_uuid:
+                type: string
+              quantity:
+                type: number
+              price:
+                type: number
+                format: double
+              name:
+                type: string
         total_price:
           type: number
           format: double
@@ -226,14 +240,22 @@ components:
 
     CreateOrderRequest:
       type: object
-      required: [user_uuid, part_uuids]
+      required: [user_uuid, items]
       properties:
         user_uuid:
           type: string
-        part_uuids:
+        items:
           type: array
           items:
-            type: string
+            type: object
+            required:
+              - part_uuid
+              - quantity
+            properties:
+              part_uuid:
+                type: string
+              quantity:
+                type: number
 
     CreateOrderResponse:
       type: object

@@ -36,17 +36,26 @@ func TestOrderServiceTest(t *testing.T) {
 func (s *OrderServiceTest) TestCreateOrder_success() {
 	ctx := context.Background()
 
-	partIDs := []string{"p1", "p2"}
+	partIDs := []string{"engine-1", "wing-1"}
 
 	s.inv.On("ListParts", ctx, partIDs).Return([]*model.Part{
-		{UUID: "p1", Price: 10},
-		{UUID: "p2", Price: 20},
+		{UUID: "engine-1", Price: 10, Quantity: 5, Name: "Movtka"},
+		{UUID: "wing-1", Price: 20, Quantity: 3, Name: "Movtka"},
 	}, nil)
 	s.repo.On("Create", ctx, mock.AnythingOfType("*model.Order")).Return(nil)
-	order, err := s.service.CreateOrder(ctx, "user-1", partIDs)
+	order, err := s.service.CreateOrder(ctx, "user-1", []model.Item{
+		{
+			PartUUID: "engine-1",
+			Quantity: 5,
+		},
+		{
+			PartUUID: "wing-1",
+			Quantity: 3,
+		},
+	})
 
 	s.NoError(err)
-	s.Equal(float64(30), order.TotalPrice)
+	s.Equal(float64(110), order.TotalPrice)
 
 	s.inv.AssertExpectations(s.T())
 	s.repo.AssertExpectations(s.T())
@@ -55,14 +64,24 @@ func (s *OrderServiceTest) TestCreateOrder_success() {
 func (s *OrderServiceTest) TestCreateOrder_inventoryError() {
 	ctx := context.Background()
 
-	partIDs := []string{"p1", "p2"}
+	partIDs := []string{"engine-1", "wing-1"}
 
 	s.inv.On("ListParts", ctx, partIDs).Return(nil, errors.New("not found"))
-	_, err := s.service.CreateOrder(ctx, "user-1", partIDs)
+	_, err := s.service.CreateOrder(ctx, "user-1", []model.Item{
+		{
+			PartUUID: "engine-1",
+			Quantity: 5,
+		},
+		{
+			PartUUID: "wing-1",
+			Quantity: 3,
+		},
+	})
 	s.Error(err)
 	s.inv.AssertExpectations(s.T())
 	s.repo.AssertNotCalled(s.T(), "Create", mock.Anything)
 }
+
 func (s *OrderServiceTest) TestPayOrder_success() {
 	ctx := context.Background()
 

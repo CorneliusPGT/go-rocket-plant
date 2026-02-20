@@ -43,8 +43,8 @@ func (*CreateOrderInternalServerError) createOrderRes() {}
 
 // Ref: #/components/schemas/CreateOrderRequest
 type CreateOrderRequest struct {
-	UserUUID  string   `json:"user_uuid"`
-	PartUuids []string `json:"part_uuids"`
+	UserUUID string                        `json:"user_uuid"`
+	Items    []CreateOrderRequestItemsItem `json:"items"`
 }
 
 // GetUserUUID returns the value of UserUUID.
@@ -52,9 +52,9 @@ func (s *CreateOrderRequest) GetUserUUID() string {
 	return s.UserUUID
 }
 
-// GetPartUuids returns the value of PartUuids.
-func (s *CreateOrderRequest) GetPartUuids() []string {
-	return s.PartUuids
+// GetItems returns the value of Items.
+func (s *CreateOrderRequest) GetItems() []CreateOrderRequestItemsItem {
+	return s.Items
 }
 
 // SetUserUUID sets the value of UserUUID.
@@ -62,9 +62,34 @@ func (s *CreateOrderRequest) SetUserUUID(val string) {
 	s.UserUUID = val
 }
 
-// SetPartUuids sets the value of PartUuids.
-func (s *CreateOrderRequest) SetPartUuids(val []string) {
-	s.PartUuids = val
+// SetItems sets the value of Items.
+func (s *CreateOrderRequest) SetItems(val []CreateOrderRequestItemsItem) {
+	s.Items = val
+}
+
+type CreateOrderRequestItemsItem struct {
+	PartUUID string  `json:"part_uuid"`
+	Quantity float64 `json:"quantity"`
+}
+
+// GetPartUUID returns the value of PartUUID.
+func (s *CreateOrderRequestItemsItem) GetPartUUID() string {
+	return s.PartUUID
+}
+
+// GetQuantity returns the value of Quantity.
+func (s *CreateOrderRequestItemsItem) GetQuantity() float64 {
+	return s.Quantity
+}
+
+// SetPartUUID sets the value of PartUUID.
+func (s *CreateOrderRequestItemsItem) SetPartUUID(val string) {
+	s.PartUUID = val
+}
+
+// SetQuantity sets the value of Quantity.
+func (s *CreateOrderRequestItemsItem) SetQuantity(val float64) {
+	s.Quantity = val
 }
 
 // Ref: #/components/schemas/CreateOrderResponse
@@ -331,7 +356,7 @@ func (o OptString) Or(d string) string {
 type Order struct {
 	OrderUUID       string                   `json:"order_uuid"`
 	UserUUID        string                   `json:"user_uuid"`
-	PartUuids       []string                 `json:"part_uuids"`
+	Items           []OrderItemsItem         `json:"items"`
 	TotalPrice      float64                  `json:"total_price"`
 	TransactionUUID OptNilString             `json:"transaction_uuid"`
 	PaymentMethod   OptNilOrderPaymentMethod `json:"payment_method"`
@@ -348,9 +373,9 @@ func (s *Order) GetUserUUID() string {
 	return s.UserUUID
 }
 
-// GetPartUuids returns the value of PartUuids.
-func (s *Order) GetPartUuids() []string {
-	return s.PartUuids
+// GetItems returns the value of Items.
+func (s *Order) GetItems() []OrderItemsItem {
+	return s.Items
 }
 
 // GetTotalPrice returns the value of TotalPrice.
@@ -383,9 +408,9 @@ func (s *Order) SetUserUUID(val string) {
 	s.UserUUID = val
 }
 
-// SetPartUuids sets the value of PartUuids.
-func (s *Order) SetPartUuids(val []string) {
-	s.PartUuids = val
+// SetItems sets the value of Items.
+func (s *Order) SetItems(val []OrderItemsItem) {
+	s.Items = val
 }
 
 // SetTotalPrice sets the value of TotalPrice.
@@ -409,6 +434,53 @@ func (s *Order) SetStatus(val OrderStatus) {
 }
 
 func (*Order) getOrderRes() {}
+
+type OrderItemsItem struct {
+	PartUUID string  `json:"part_uuid"`
+	Quantity float64 `json:"quantity"`
+	Price    float64 `json:"price"`
+	Name     string  `json:"name"`
+}
+
+// GetPartUUID returns the value of PartUUID.
+func (s *OrderItemsItem) GetPartUUID() string {
+	return s.PartUUID
+}
+
+// GetQuantity returns the value of Quantity.
+func (s *OrderItemsItem) GetQuantity() float64 {
+	return s.Quantity
+}
+
+// GetPrice returns the value of Price.
+func (s *OrderItemsItem) GetPrice() float64 {
+	return s.Price
+}
+
+// GetName returns the value of Name.
+func (s *OrderItemsItem) GetName() string {
+	return s.Name
+}
+
+// SetPartUUID sets the value of PartUUID.
+func (s *OrderItemsItem) SetPartUUID(val string) {
+	s.PartUUID = val
+}
+
+// SetQuantity sets the value of Quantity.
+func (s *OrderItemsItem) SetQuantity(val float64) {
+	s.Quantity = val
+}
+
+// SetPrice sets the value of Price.
+func (s *OrderItemsItem) SetPrice(val float64) {
+	s.Price = val
+}
+
+// SetName sets the value of Name.
+func (s *OrderItemsItem) SetName(val string) {
+	s.Name = val
+}
 
 type OrderPaymentMethod string
 

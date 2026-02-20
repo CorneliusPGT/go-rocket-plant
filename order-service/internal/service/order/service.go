@@ -16,27 +16,51 @@ type Service struct {
 }
 
 func NewService(repo repository.OrderRepository, inv service.InventoryService, pay service.PaymentService) *Service {
-	return &Service{
-		repo: repo,
-		inv:  inv,
-		pay:  pay,
-	}
+	return &Service{repo: repo, inv: inv, pay: pay}
 }
 
-func (s *Service) CreateOrder(ctx context.Context, userID string, partIDs []string) (*model.Order, error) {
+func (s *Service) CreateOrder(ctx context.Context, userID string, items []model.Item) (*model.Order, error) {
+
+	var partIDs []string
+	for _, v := range items {
+		partIDs = append(partIDs, v.PartUUID)
+	}
 	parts, err := s.inv.ListParts(ctx, partIDs)
 	if err != nil {
 		return nil, err
 	}
-	var total float64
-	for _, part := range parts {
-		total += part.Price
+
+	if len(parts) != len(items) {
+		return nil, model.ErrNotFound
 	}
+
+	partMap := make(map[string]*model.Part, len(parts))
+	for _, v := range parts {
+		partMap[v.UUID] = v
+	}
+	var total float64
+	upItems := make([]model.Item, len(items))
+	for i, v := range items {
+		part, exists := partMap[v.PartUUID]
+		if !exists {
+			return nil, model.ErrNotFound
+		}
+		if part.Quantity < v.Quantity {
+			return nil, model.ErrNotEnoughInStock
+		}
+		upItems[i] = model.Item{
+			PartUUID: part.UUID,
+			Name:     part.Name,
+			Price:    part.Price,
+			Quantity: v.Quantity,
+		}
+		total += part.Price * float64(v.Quantity)
+	}
+
 	order := &model.Order{
-		OrderUUID: uuid.New().String(),
-		UserUUID:  userID,
-		/* 	Parts:     parts, */
-		PartUUIDs:  partIDs,
+		OrderUUID:  uuid.New().String(),
+		UserUUID:   userID,
+		Items:      upItems,
 		TotalPrice: total,
 		Status:     model.StatusPendingPayment,
 	}

@@ -7,7 +7,7 @@ services:
     volumes:
       - inventory_mongo_data:/data/db
     networks:
-      - microservices
+      - core
 
 volumes:
   inventory_mongo_data:

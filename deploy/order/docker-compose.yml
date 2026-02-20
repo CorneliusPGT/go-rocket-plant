@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:16-alpine
     container_name: order-postgres
     environment:
       POSTGRES_DB: orders
@@ -11,7 +11,7 @@ services:
     volumes:
       - order_pg_data:/var/lib/postgresql/data
     networks:
-      - microservices
+      - core
 
 volumes:
   order_pg_data:

@@ -3,76 +3,51 @@ package main
 import (
 	"context"
 	"fmt"
+	"inventory-service/grpc/handlers"
 	"inventory-service/grpc/inventorypb"
+	"inventory-service/internal/model"
+	"inventory-service/internal/service"
+	repo "inventory-service/repository"
+
+	"time"
 
 	"log"
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const grpcPort = 50051
 
-type inventoryService struct {
-	inventorypb.UnimplementedInventoryServiceServer
-	mu    sync.RWMutex
-	parts map[string]*inventorypb.Part
-}
-
-func seedParts() map[string]*inventorypb.Part {
-	now := timestamppb.Now()
-
-	return map[string]*inventorypb.Part{
-		"engine-1": {
-			Uuid:          "engine-1",
-			Name:          "Main Engine",
-			Description:   "Primary propulsion engine",
-			Price:         1_500_000,
-			StockQuantity: 10,
-			Category:      inventorypb.Category_CATEGORY_ENGINE,
-			Dimensions: &inventorypb.Dimensions{
-				Length: 4,
-				Width:  2,
-				Height: 2,
-				Weight: 1500,
-			},
-			Manufacter: &inventorypb.Manufacter{
-				Name:    "SpaceY",
-				Country: "USA",
-				Website: "https://spacey.example",
-			},
-			Tags:      []string{"engine", "rocket"},
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-
-		"wing-1": {
-			Uuid:          "wing-1",
-			Name:          "Left Wing",
-			Description:   "Aerodynamic wing",
-			Price:         250_000,
-			StockQuantity: 5,
-			Category:      inventorypb.Category_CATEGORY_WING,
-			Manufacter: &inventorypb.Manufacter{
-				Name:    "AeroWorks",
-				Country: "Germany",
-			},
-			Tags:      []string{"wing"},
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-	}
-}
-
 func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://127.0.0.1:27017"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		log.Fatal("mongo not reachable:", err)
+	}
+
+	db := client.Database("inventory")
+	col := db.Collection("parts")
+	repo := repo.NewMongoRepo(col)
+	partService := service.NewPartService(repo)
+
+	err = seedData(ctx, col)
+	if err != nil {
+		log.Println("did not seed:", err)
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		log.Printf("failed to listen: %v\n", err)
@@ -80,10 +55,8 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	service := &inventoryService{
-		parts: seedParts(),
-	}
-	inventorypb.RegisterInventoryServiceServer(s, service)
+	handler := handlers.NewInventoryHandler(partService)
+	inventorypb.RegisterInventoryServiceServer(s, handler)
 	reflection.Register(s)
 
 	go func() {
@@ -103,94 +76,57 @@ func main() {
 	log.Println("Server stopped")
 }
 
-func (s *inventoryService) GetPart(ctx context.Context, req *inventorypb.GetPartRequest) (*inventorypb.GetPartResponse, error) {
-	s.mu.RLock()
-	part, ok := s.parts[req.Uuid]
-	s.mu.RUnlock()
+func seedData(ctx context.Context, col *mongo.Collection) error {
+	count, err := col.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		log.Println("Data already exists, seed skipped...")
+		return nil
+	}
+	log.Println("seeding initial data...")
 
-	if !ok {
-		return nil, status.Errorf(codes.NotFound, "part not found")
+	parts := []interface{}{
+		bson.M{
+			"uuid":           "engine-1",
+			"name":           "Main Engine",
+			"description":    "Primary propulsion engine",
+			"price":          1500000,
+			"stock_quantity": 10,
+			"category":       inventorypb.Category_CATEGORY_ENGINE,
+			"dimensions": &inventorypb.Dimensions{
+				Length: 4,
+				Width:  2,
+				Height: 2,
+				Weight: 1500,
+			},
+			"manufacter": model.Manufacter{
+				Name:    "SpaceY",
+				Country: "USA",
+				Website: "https://spacey.example",
+			},
+			"tags":       []string{"engine", "rocket"},
+			"created_at": time.Now(),
+			"updated_at": time.Now(),
+		},
+		bson.M{
+			"uuid":           "wing-1",
+			"name":           "Left Wing",
+			"description":    "Aerodynamic wing",
+			"price":          250000,
+			"stock_quantity": 5,
+			"category":       inventorypb.Category_CATEGORY_WING,
+			"manufacter": model.Manufacter{
+				Name:    "AeroWorks",
+				Country: "Germany",
+			},
+			"tags":       []string{"wing"},
+			"created_at": time.Now(),
+			"updated_at": time.Now(),
+		},
 	}
-	return &inventorypb.GetPartResponse{Part: part}, nil
-}
 
-func (s *inventoryService) ListParts(ctx context.Context, req *inventorypb.ListPartsRequest) (*inventorypb.ListPartsResponse, error) {
-	var parts []*inventorypb.Part
-	s.mu.RLock()
-	for _, v := range s.parts {
-		parts = append(parts, v)
-	}
-	s.mu.RUnlock()
-	if req.Filter == nil {
-		return &inventorypb.ListPartsResponse{Parts: parts}, nil
-	}
-	var filtered []*inventorypb.Part
-	for _, part := range parts {
-		if checkPart(part, req.Filter) {
-			filtered = append(filtered, part)
-		}
-	}
-	return &inventorypb.ListPartsResponse{Parts: filtered}, nil
-}
-
-func checkPart(part *inventorypb.Part, filters *inventorypb.PartsFilter) bool {
-	fCheck := false
-	if len(filters.Uuids) > 0 {
-		for _, v := range filters.Uuids {
-			if part.Uuid == v {
-				fCheck = true
-			}
-		}
-		if fCheck == false {
-			return false
-		}
-		fCheck = false
-	}
-	if len(filters.Names) > 0 {
-		for _, v := range filters.Names {
-			if part.Name == v {
-				fCheck = true
-			}
-		}
-		if fCheck == false {
-			return false
-		}
-		fCheck = false
-	}
-	if len(filters.Categories) > 0 {
-		for _, v := range filters.Categories {
-			if part.Category == v {
-				fCheck = true
-			}
-		}
-		if fCheck == false {
-			return false
-		}
-		fCheck = false
-	}
-	if len(filters.ManufacturerCountries) > 0 {
-		for _, v := range filters.ManufacturerCountries {
-			if part.Manufacter.Country == v {
-				fCheck = true
-			}
-		}
-		if fCheck == false {
-			return false
-		}
-		fCheck = false
-	}
-	if len(filters.Tags) > 0 {
-		for _, v := range filters.Tags {
-			for _, k := range part.Tags {
-				if k == v {
-					fCheck = true
-				}
-			}
-		}
-		if fCheck == false {
-			return false
-		}
-
-	}
-	return true
+	_, err = col.InsertMany(ctx, parts)
+	return err
 }

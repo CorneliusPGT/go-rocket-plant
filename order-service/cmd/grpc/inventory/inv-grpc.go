@@ -26,9 +26,10 @@ func (g *GRPCClient) ListParts(ctx context.Context, partIDs []string) ([]*model.
 	parts := make([]*model.Part, len(resp.Parts))
 	for i, v := range resp.Parts {
 		parts[i] = &model.Part{
-			UUID:  v.Uuid,
-			Name:  v.Name,
-			Price: v.Price,
+			Quantity: int(v.StockQuantity),
+			UUID:     v.Uuid,
+			Name:     v.Name,
+			Price:    v.Price,
 		}
 	}
 	return parts, nil

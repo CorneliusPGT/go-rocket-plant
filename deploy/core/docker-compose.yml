@@ -1,5 +1,12 @@
-version: "3.9"
+
+
+services:
+  init:
+    image: alpine
+    command: echo "Core network initialized"
+    networks:
+      - core
 
 networks:
-  microservices:
+  core:
     name: core

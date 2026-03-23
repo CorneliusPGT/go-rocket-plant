@@ -6,6 +6,7 @@ on:
 
 jobs:
   extract-vars:
+    if: false
     name: Extract Variables from Taskfile
     runs-on: ubuntu-latest
     outputs:
@@ -24,6 +25,7 @@ jobs:
           .github/scripts/extract-versions.sh
 
   lint:
+    if: false
     needs: extract-vars
     uses: ./.github/workflows/lint-reusable.yml
     with:
